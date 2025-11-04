@@ -22,6 +22,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // MongoDB 연결
+console.log('🔍 환경변수 확인 중...');
+console.log('PORT:', process.env.PORT);
+console.log('MONGODB_URI 존재:', !!process.env.MONGODB_URI);
+console.log('MONGODB_URI 길이:', process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0);
+
 if (!process.env.MONGODB_URI) {
   console.error('❌ MONGODB_URI 환경변수가 설정되지 않았습니다!');
   console.error('Cloudtype에서 환경변수를 설정해주세요:');
@@ -32,6 +37,7 @@ if (!process.env.MONGODB_URI) {
 
 const mongoURI = process.env.MONGODB_URI.trim();
 console.log('🔍 MongoDB 연결 시도 중...');
+console.log('🔍 연결 URI (처음 30자):', mongoURI.substring(0, 30) + '...');
 mongoose.connect(mongoURI)
   .then(() => {
     console.log('✅ MongoDB 연결 성공!');
