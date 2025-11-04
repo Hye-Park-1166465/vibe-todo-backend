@@ -23,6 +23,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // MongoDB 연결
+console.log('🔍 MongoDB 연결 시도 중...');
+console.log('🔍 URI (처음 50자):', MONGO_URI.substring(0, 50) + '...');
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB 연결 성공!');
@@ -33,7 +35,9 @@ mongoose.connect(MONGO_URI)
     });
   })
   .catch((err) => {
-    console.error('❌ MongoDB 연결 실패:', err.message);
+    console.error('❌ MongoDB 연결 실패:');
+    console.error('❌ 오류 메시지:', err.message);
+    console.error('❌ 오류 상세:', err);
     process.exit(1);
   });
 
