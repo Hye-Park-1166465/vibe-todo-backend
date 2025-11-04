@@ -22,7 +22,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // MongoDB 연결
-const mongoURI = process.env.MONGODB_URI ? process.env.MONGODB_URI.trim() : 'mongodb://localhost:27017/todo-app';
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI 환경변수가 설정되지 않았습니다!');
+  console.error('Cloudtype에서 환경변수를 설정해주세요:');
+  console.error('  Name: MONGODB_URI');
+  console.error('  Value: mongodb+srv://...');
+  process.exit(1);
+}
+
+const mongoURI = process.env.MONGODB_URI.trim();
+console.log('🔍 MongoDB 연결 시도 중...');
 mongoose.connect(mongoURI)
   .then(() => {
     console.log('✅ MongoDB 연결 성공!');
@@ -33,7 +42,7 @@ mongoose.connect(mongoURI)
     });
   })
   .catch((err) => {
-    console.error('❌ MongoDB 연결 실패:', err);
+    console.error('❌ MongoDB 연결 실패:', err.message);
     process.exit(1);
   });
 
