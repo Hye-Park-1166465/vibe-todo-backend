@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO 관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .form-container {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .todos-container {
+            padding: 30px;
+        }
+
+        .todo-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .todo-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .todo-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .todo-item p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .todo-item .meta {
+            font-size: 0.85em;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #fcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 TODO 관리</h1>
+            <p>할 일을 추가하고 관리하세요</p>
+        </div>
+
+        <div class="form-container">
+            <form id="todoForm">
+                <div class="form-group">
+                    <label for="title">제목 *</label>
+                    <input type="text" id="title" name="title" required placeholder="할 일을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="description">설명</label>
+                    <textarea id="description" name="description" placeholder="상세 설명을 입력하세요 (선택사항)"></textarea>
+                </div>
+                <button type="submit" class="btn">추가하기</button>
+            </form>
+        </div>
+
+        <div class="todos-container">
+            <div id="errorMessage" style="display: none;"></div>
+            <div id="loading" class="loading">로딩 중...</div>
+            <div id="todosList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/todos';
+        let editingId = null;
+
+        // 페이지 로드 시 TODO 목록 가져오기
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTodos();
+        });
+
+        // TODO 목록 가져오기
+        async function loadTodos() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('todosList').innerHTML = '';
+                document.getElementById('errorMessage').style.display = 'none';
+
+                const response = await fetch(API_BASE);
+                if (!response.ok) throw new Error('서버 오류가 발생했습니다.');
+
+                const todos = await response.json();
+                document.getElementById('loading').style.display = 'none';
+
+                if (todos.length === 0) {
+                    document.getElementById('todosList').innerHTML = `
+                        <div class="empty-state">
+                            <h2>할 일이 없습니다</h2>
+                            <p>위에 있는 폼을 사용해서 새로운 할 일을 추가해보세요!</p>
+                        </div>
+                    `;
+                } else {
+                    displayTodos(todos);
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                showError('할 일 목록을 불러오는데 실패했습니다: ' + error.message);
+            }
+        }
+
+        // TODO 목록 표시
+        function displayTodos(todos) {
+            const todosList = document.getElementById('todosList');
+            todosList.innerHTML = todos.map(todo => `
+                <div class="todo-item" id="todo-${todo._id}">
+                    <h3>${escapeHtml(todo.title)}</h3>
+                    ${todo.description ? `<p>${escapeHtml(todo.description)}</p>` : ''}
+                    <div class="meta">
+                        생성일: ${formatDate(todo.createdAt)} | 
+                        ${todo.updatedAt && new Date(todo.updatedAt) > new Date(todo.createdAt) 
+                            ? `수정일: ${formatDate(todo.updatedAt)}` 
+                            : ''}
+                    </div>
+                    <div class="todo-actions">
+                        <button class="btn btn-edit btn-small" onclick="editTodo('${todo._id}', '${escapeHtml(todo.title)}', '${escapeHtml(todo.description || '')}')">
+                            수정
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="deleteTodo('${todo._id}')">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // TODO 추가/수정 폼 제출
+        document.getElementById('todoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+
+            try {
+                if (editingId) {
+                    // 수정
+                    const response = await fetch(`${API_BASE}/${editingId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ title, description })
+                    });
+
+                    if (!response.ok) throw new Error('수정에 실패했습니다.');
+                    
+                    editingId = null;
+                    document.getElementById('todoForm').reset();
+                    document.querySelector('.btn').textContent = '추가하기';
+                } else {
+                    // 추가
+                    const response = await fetch(API_BASE, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ title, description })
+                    });
+
+                    if (!response.ok) throw new Error('추가에 실패했습니다.');
+                    
+                    document.getElementById('todoForm').reset();
+                }
+
+                loadTodos();
+            } catch (error) {
+                showError('오류가 발생했습니다: ' + error.message);
+            }
+        });
+
+        // TODO 수정
+        function editTodo(id, title, description) {
+            editingId = id;
+            document.getElementById('title').value = title;
+            document.getElementById('description').value = description;
+            document.querySelector('.btn').textContent = '수정하기';
+            document.getElementById('title').focus();
+        }
+
+        // TODO 삭제
+        async function deleteTodo(id) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('삭제에 실패했습니다.');
+
+                loadTodos();
+            } catch (error) {
+                showError('삭제 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 에러 메시지 표시
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.className = 'error';
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 날짜 포맷
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+</html>
+
